@@ -1,9 +1,11 @@
-import logo from './logo.svg';
 import './App.css';
 
+import { useState } from 'react';
 import { usePapaParse } from 'react-papaparse';
+import { ForceGraph2D } from 'react-force-graph';
 
 function App() {
+  const [graphData, setGraphData] = useState({nodes: [], links: []})
 
   const s = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQEjcHllKZ6WFjH8VTk2xmyRmoS6pg2dIW4qGEvdOoQX3w2W4CLofJ0b8B2rClE5mmozBxhx9opiBBe/pub?gid=0&single=true&output=csv"
 
@@ -13,27 +15,30 @@ function App() {
     header: true,
     worker: true,
     complete: function(results) {
-      console.log(results);
+      const { nodes } = graphData;
+      if (nodes.length) {
+        return
+      }
+
+      setGraphData({ 
+        nodes: results.data.map((x) => ({ id: x.Name, color: 'green' })).concat(
+          results.data.map((x) => ({ id: x.Program, color: 'blue' }))
+        ), 
+        links: results.data.map((x) => ({ 
+          source: x.Name, 
+          target: x.Program,
+        }))
+      })
     },
   })
 
 
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <ForceGraph2D
+        graphData={graphData}
+        nodeLabel="id"
+      />
     </div>
   );
 }
