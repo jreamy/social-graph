@@ -20,10 +20,14 @@ function App() {
         return
       }
 
+      console.log([...new Set(results.data.map((x) => x.Name))].map((x) => ({ id: x, color: 'green' })).concat(
+        [...new Set(results.data.map((x) => x.Program))].map((x) => ({ id: x, color: 'blue' })),
+      ))
+
       setGraphData({ 
-        nodes: results.data.map((x) => ({ id: x.Name, color: 'green' })).concat(
-          results.data.map((x) => ({ id: x.Program, color: 'blue' }))
-        ), 
+        nodes: [...new Set(results.data.map((x) => x.Name))].map((x) => ({ id: x, color: 'green' })).concat(
+          [...new Set(results.data.map((x) => x.Program))].map((x) => ({ id: x, color: 'blue' })),
+        ),
         links: results.data.map((x) => ({ 
           source: x.Name, 
           target: x.Program,
