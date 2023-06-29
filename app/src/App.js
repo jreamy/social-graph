@@ -1,22 +1,39 @@
 import './App.css';
 
 import { useState } from 'react';
+import { Buffer } from "buffer"; 
+import { usePapaParse } from 'react-papaparse';
+
 import Graph from './Graph.js';
 import SheetInput from './SheetInput.js';
-
-import { usePapaParse } from 'react-papaparse';
-import { readString } from 'react-papaparse';
 
 // https://docs.google.com/spreadsheets/d/e/2PACX-1vQEjcHllKZ6WFjH8VTk2xmyRmoS6pg2dIW4qGEvdOoQX3w2W4CLofJ0b8B2rClE5mmozBxhx9opiBBe/pub?gid=0&single=true&output=csv
 
 function App() {
   const params = new URLSearchParams(window.location.search);
 
-  const [sheet, setSheet] = useState({id: params.get("id"), gid: params.get("gid")});
-  const [primary, setPrimary] = useState({id: params.get("primary"), visible: true});
-  const [secondary, setSecondary] = useState({id: params.get("secondary"), visible: params.get("show-secondary") !== "false"});
-  const [format, setForamt] = useState(params.get("format"))
+  var nodes_init = []
+  try {
+    if (params.get("nodes")) {
+      nodes_init = JSON.parse(Buffer.from(params.get("nodes"), "base64").toString())
+    }
+  } catch (e) {
+    console.log("failed to parse json for nodes")
+  }
 
+  var links_init = []
+  try {
+    if (params.get("links")) {
+      links_init = JSON.parse(Buffer.from(params.get("links"), "base64").toString())
+    }
+  } catch (e) {
+    console.log("failed to parse json for links")
+  }
+
+  const [sheet, setSheet] = useState({id: params.get("id"), gid: params.get("gid")});
+
+  const [nodes, setNodes] = useState(nodes_init)
+  const [links, setLinks] = useState(links_init)
   const [data, setData] = useState({data: [], header: []})
 
   const sheet_link = `https://docs.google.com/spreadsheets/d/e/${sheet.id}/pub?gid=${sheet.gid}&single=true&output=csv`;
@@ -26,50 +43,27 @@ function App() {
   readRemoteFile(sheet_link, {
     download: true, header: true, worker: true,
     complete: (x) => {
-      if (data.source === sheet_link && data.format === format) {
+      if (data.source === sheet_link) {
         return
       }
 
       if (x && !data.length) {
-        if (format === "csv") {
-          readString(x.data.map((x) => x[secondary.id]).join("\n"), {
-            header: false, worker: true,
-            complete: (y) => {
-              setData({
-                source: sheet_link, format: format,
-                header: x.meta.fields,
-                rows: x.data.map((x, idx) => y.data[idx].map((z) => ({
-                  [primary.id]: x[primary.id],
-                  [secondary.id]: z,
-                }))).flat()
-              })
-            }
-          })
-        } else {
-          setData({
-            source: sheet_link, format: format,
-            header: x.meta.fields,
-            rows: x.data,
-          });
-        }
+        setData({
+          source: sheet_link,
+          header: x.meta.fields,
+          rows: x.data,
+        });
       }
     },
   })
 
   const update_callback = (x) => {
-    if (primary.id !== x.primary) {
-      setPrimary({id: x.primary, visible: true});
-    }
-    if (secondary.id !== x.secondary || secondary.visible !== x.show_secondary) {
-      setSecondary({id: x.secondary, visible: x.show_secondary});
-    }
-    if (format !== x.format) {
-      setForamt(x.format);
-    }
+    setNodes([...x.nodes])
+    setLinks([...x.links].map((x) => JSON.parse(x)))
 
     if (x.sheet.length) {
       const parts = x.sheet.match(/https:\/\/docs.google.com\/spreadsheets\/d\/e\/(.*)\/.*pub.*\?gid=(\d*).*/)
-      if (parts.length !== 3) {
+      if (!parts || parts.length !== 3) {
         console.log(parts);
         console.log("invalid sheet input");
         return
@@ -87,17 +81,12 @@ function App() {
       params.set("gid", sheet.gid);
     }
 
-    if (primary.id) {
-      params.set("primary", primary.id);
+    if (nodes) {
+      params.set("nodes", Buffer.from(JSON.stringify(nodes)).toString("base64"))
     }
 
-    if (secondary.id) {
-      params.set("secondary", secondary.id);
-      params.set("show-secondary", secondary.visible);
-    }
-
-    if (format) {
-      params.set("format", format);
+    if (links) {
+      params.set("links", Buffer.from(JSON.stringify(links)).toString("base64"))
     }
 
     window.location.search = params.toString();
@@ -107,12 +96,10 @@ function App() {
     <div className="App">
       <div style={{ display: 'flex', height: '100%', direction: 'ltr' }}>
       <SheetInput 
-        sheet={sheet_link} header={data.header}
-        primary={primary.id} format={format}
-        secondary={secondary.id} show_secondary={secondary.visible}
+        sheet={sheet_link} header={data.header} nodes={nodes} links={links}
         save={save_callback} update={update_callback}
       />
-      <Graph data={data.rows} primary={primary} secondary={secondary} format={format}/>
+      <Graph data={data.rows} nodes={nodes} links={links}/>
       </div>
     </div>
   );

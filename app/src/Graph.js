@@ -6,51 +6,40 @@ import { ForceGraph2D } from 'react-force-graph';
 class Graph extends React.Component {
 
   render() {
-    if (!this.props.data || !this.props.data.length) {
+    if (!this.props.data || !this.props.data.length || !this.props.nodes) {
       return
     }
 
-    const primary_nodes = [...new Set(this.props.data.map((x) => x[this.props.primary.id]))];
-    const secondary_nodes = [...new Set(this.props.data.map((x) => x[this.props.secondary.id]))];
+    const visible_nodes = this.props.nodes.filter((n) => n.visible).map((n) => this.props.data.map((d) => 
+      Object.fromEntries(n.fields.map((f) => ([ [f.value], {value: d[f.value], merge: f.merge} ])))
+    ))
 
-    var primary_links = {};
-    var secondary_links = {};
-    this.props.data.forEach((x) => {
-      // Map of primary_node -> secondary_node
-      if (!primary_links[x[this.props.primary.id]]) {
-        primary_links[x[this.props.primary.id]] = [];
-      }
-      primary_links[x[this.props.primary.id]].push(x[this.props.secondary.id])
+    var prev = {}
+    visible_nodes.forEach((x, i) => {   // node types
+      x.forEach((y, j) => {             // nodes of a type
+        Object.keys(y).forEach((k) => { // fields of a node
+           if (y[k].value) {
+            prev[k] = y[k].value;
+          } else if (prev[k] && y[k].merge) {
+            visible_nodes[i][j][k].value = prev[k];
+          }
+        })
+      })
+    })
 
-      // Map of secondary_node -> primary_node
-      if (!secondary_links[x[this.props.secondary.id]]) {
-        secondary_links[x[this.props.secondary.id]] = [];
-      }
-      secondary_links[x[this.props.secondary.id]].push(x[this.props.primary.id])
-    });
+    const colors = ["green", "blue", "purple", "red"]
+    const all_nodes = visible_nodes.map((x, idx) => [...new Set(
+      x.map((n) => Object.entries(n).filter((x) => x[1].value).map((x) => `${x[1].value}`).join(` - `))
+    )].map((id) => ({ id, color: colors[idx % colors.length] })));
 
-    var skip_links = [];
-    primary_nodes.forEach((x) => {
-      primary_links[x].forEach((y) => {
-        skip_links = skip_links.concat(secondary_links[y].filter((z) => z !== x).map((z) => ({source: x, target: z})));
-      });
-    });
+    const links = this.props.links.map((l) => all_nodes[l[0]].map((n0) => all_nodes[l[1]].map((n1) => ({
+      source: n0.id, target: n1.id
+    })))).flat().flat().filter(x => x.source !== '' && x.target !== '')
 
-    const graphData = this.props.secondary.visible ? { 
-      nodes: primary_nodes.map((x) => ({ id: x, color: 'green' })).concat(
-        secondary_nodes.map((x) => ({ id: x, color: 'blue' })),
-      ),
-      links: this.props.data.map((x) => ({ 
-        source: x[this.props.primary.id], 
-        target: x[this.props.secondary.id],
-      }))
-    }: {
-      nodes: primary_nodes.map((x) => ({ id: x, color: 'green' })),
-      links: skip_links,
-    }
+    const nodes = all_nodes.flat();
 
     return <ForceGraph2D
-      graphData={graphData}
+      graphData={{nodes, links}}
       nodeLabel="id"
       nodeCanvasObject={(node, ctx, globalScale) => {
         const label = node.id;
