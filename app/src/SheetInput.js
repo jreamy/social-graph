@@ -14,10 +14,10 @@ class SheetInput extends React.Component {
 
       sheet: props.sheet ?? "",
       nodes: props.nodes ?? [],
-      links: new Set((props.links ?? []).filter((_, idx) => idx > props.nodes.length)),
+      links: new Set((props.links ?? []).filter((_, idx) => idx <= props.nodes.length).map((x) => JSON.stringify(x))),
     };
 
-    console.log(this.state)
+    console.log({p_links: props.links, s_links: this.state.links})
 
     this.menu_collapse = this.menu_collapse.bind(this);
     this.sheet_input = this.sheet_input.bind(this);
