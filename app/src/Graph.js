@@ -10,33 +10,28 @@ class Graph extends React.Component {
       return
     }
 
-    const visible_nodes = this.props.nodes.filter((n) => n.visible).map((n) => this.props.data.map((d) => 
-      Object.fromEntries(n.fields.map((f) => ([ [f.value], {value: d[f.value], merge: f.merge} ])))
-    ))
+    var prev = {};
+    const filtered = this.props.nodes.filter((n) => n.visible);
+    const data = this.props.data.map((row) => filtered.map((n, n_idx) => n.fields.map((f) => {
+      if (row[f.value]) {
+        prev[n_idx] = { ...prev[n_idx],
+          [f.value]: row[f.value],
+        }
+      }
+      return f.merge ? prev[n_idx][f.value] : row[f.value]
+    })))
 
-    var prev = {}
-    visible_nodes.forEach((x, i) => {   // node types
-      x.forEach((y, j) => {             // nodes of a type
-        Object.keys(y).forEach((k) => { // fields of a node
-           if (y[k].value) {
-            prev[k] = y[k].value;
-          } else if (prev[k] && y[k].merge) {
-            visible_nodes[i][j][k].value = prev[k];
-          }
-        })
-      })
-    })
+    const node_id = (x) => x ? x.filter((x) => x).join(" - ") : ""
 
     const colors = ["green", "blue", "purple", "red"]
-    const all_nodes = visible_nodes.map((x, idx) => [...new Set(
-      x.map((n) => Object.entries(n).filter((x) => x[1].value).map((x) => `${x[1].value}`).join(` - `))
-    )].map((id) => ({ id, color: colors[idx % colors.length] })));
-
-    const links = this.props.links.map((l) => all_nodes[l[0]].map((n0) => all_nodes[l[1]].map((n1) => ({
-      source: n0.id, target: n1.id
-    })))).flat().flat().filter(x => x.source !== '' && x.target !== '')
-
-    const nodes = all_nodes.flat();
+    const node_colors = Object.fromEntries(data.map((n) => n.map((x, idx) => [
+      node_id(x), colors[idx % colors.length],
+    ])).flat())
+    const nodes = Object.keys(node_colors).map((id) => ({id, color: node_colors[id]}))
+    
+    const links = this.props.links.map((l) => data.map((n) => ({
+      source: node_id(n[l[0]]), target: node_id(n[l[1]])
+    }))).flat()
 
     return <ForceGraph2D
       graphData={{nodes, links}}
