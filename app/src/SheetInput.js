@@ -8,7 +8,6 @@ class SheetInput extends React.Component {
   constructor(props) {
     super(props);
 
-    console.log(props);
     this.state = {
       collapsed: true,
 
@@ -16,8 +15,6 @@ class SheetInput extends React.Component {
       nodes: props.nodes ?? [],
       links: new Set((props.links ?? []).filter((_, idx) => idx <= props.nodes.length).map((x) => JSON.stringify(x))),
     };
-
-    console.log({p_links: props.links, s_links: this.state.links})
 
     this.menu_collapse = this.menu_collapse.bind(this);
     this.sheet_input = this.sheet_input.bind(this);

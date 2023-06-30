@@ -31,7 +31,7 @@ class Graph extends React.Component {
     
     const links = this.props.links.map((l) => data.map((n) => ({
       source: node_id(n[l[0]]), target: node_id(n[l[1]])
-    }))).flat()
+    }))).flat().filter((x) => x.source && x.target)
 
     return <ForceGraph2D
       graphData={{nodes, links}}
