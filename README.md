@@ -50,6 +50,7 @@ Continue adding nodes and enabling / disabling edges as you like.
 
 Tips:
  - click and drag nodes to move them around
+ - scroll to zoom in or out
  - click the `+` button on a node to add another piece of information to it (i.e. Conference X in 2020 instead of just Conference X)
  - click the `-` button on a node to remove the last piece of information on it.
  - the `merge` option allows using the merge cell option in google sheets. It reuses values when cells are empty, which is how merged cells show up in the csv format.
