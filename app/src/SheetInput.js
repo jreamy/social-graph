@@ -19,6 +19,7 @@ class SheetInput extends React.Component {
     this.menu_collapse = this.menu_collapse.bind(this);
     this.sheet_input = this.sheet_input.bind(this);
     this.save = this.save.bind(this);
+    this.help = this.help.bind(this);
   }
 
   menu_collapse(x) {
@@ -31,6 +32,10 @@ class SheetInput extends React.Component {
 
   save(x) {
     this.props.save(this.state)
+  }
+
+  help(x) {
+    window.open("https://github.com/jreamy/social-graph/blob/develop/README.md", '_blank');
   }
 
   render() {
@@ -120,6 +125,9 @@ class SheetInput extends React.Component {
             {"Save"}
           </MenuItem>}
 
+          {this.state.collapsed ? [] : <MenuItem key="help" onClick={this.help}> 
+            {"Help"}
+          </MenuItem>}
         </Menu>
         </div>
       </Sidebar>
